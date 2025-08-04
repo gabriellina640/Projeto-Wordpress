@@ -1,22 +1,42 @@
 #!/bin/bash
 
-# Container do banco
+# Container e dados do banco
 DB_CONTAINER="wordpress-docker_db_1"
-
-# Usuário e senha do banco (root e senha conforme seu docker-compose)
 DB_USER="root"
 DB_PASS="rootpass"
 
-# Pasta para salvar backups localmente
-BACKUP_DIR="./backups"
+# Diretórios
+BASE_BACKUP="./backups"
+DATE=$(date +%Y%m%d_%H%M%S)
+DB_BACKUP="$BASE_BACKUP/db/backup_$DATE.sql"
+WP_BACKUP="$BASE_BACKUP/wp-content/wp-content_$DATE.zip"
 
-# Cria pasta de backup se não existir
-mkdir -p "$BACKUP_DIR"
+# Cria pastas se não existirem
+mkdir -p "$BASE_BACKUP/db"
+mkdir -p "$BASE_BACKUP/wp-content"
 
-# Nome do arquivo com timestamp
-BACKUP_FILE="$BACKUP_DIR/backup_$(date +%Y%m%d_%H%M%S).sql"
+echo "🔄 Iniciando backup..."
 
-# Faz dump do banco dentro do container e salva localmente
-docker exec $DB_CONTAINER sh -c "exec mysqldump -u$DB_USER -p$DB_PASS --all-databases" > "$BACKUP_FILE"
+# Backup do banco
+if docker exec "$DB_CONTAINER" sh -c "exec mysqldump -u$DB_USER -p$DB_PASS --all-databases" > "$DB_BACKUP"; then
+    echo "✅ Banco salvo em: $DB_BACKUP"
+else
+    echo "❌ Erro ao fazer backup do banco!" >&2
+    exit 1
+fi
 
-echo "Backup criado em: $BACKUP_FILE"
+# Backup do wp-content
+if zip -r "$WP_BACKUP" wp-content > /dev/null; then
+    echo "✅ wp-content salvo em: $WP_BACKUP"
+else
+    echo "❌ Erro ao zipar wp-content!" >&2
+    exit 1
+fi
+
+echo "🎉 Backup finalizado com sucesso."
+
+# Upload para Google Drive
+echo "☁️ Enviando para o Google Drive..."
+rclone copy "$DB_BACKUP" gdrive:wordpress/backups/db
+rclone copy "$WP_BACKUP" gdrive:wordpress/backups/wp-content
+echo "✅ Backup enviado ao Google Drive."
