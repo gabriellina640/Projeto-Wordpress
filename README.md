@@ -1,95 +1,114 @@
-# 🧱 Projeto WordPress com Docker
+# 🚀 Projeto WordPress com Docker + Backup Automatizado
 
-Este repositório contém uma estrutura completa para rodar uma loja virtual WordPress + WooCommerce usando Docker, com suporte a plugins essenciais para performance, segurança, SEO, pagamentos, frete e mais.
-
----
-
-## 🚀 Tecnologias Utilizadas
-
-- Docker
-- Docker Compose
-- WordPress 6+
-- WooCommerce 10+
-- MySQL
-- Traefik (proxy reverso)
-- DuckDNS + HTTPS com SSL (futuramente)
+Este repositório contém um ambiente completo para rodar o WordPress com Docker, além de scripts prontos para **backup automático do banco de dados** e da pasta `wp-content`, com envio direto para o **Google Drive via rclone**.
 
 ---
 
-## 📦 Plugins Incluídos
+## 📦 Estrutura do Projeto
 
-| Plugin                                       | Função                                       |
-|---------------------------------------------|----------------------------------------------|
-| WooCommerce                                  | Loja virtual                                 |
-| WooCommerce Correios                         | Cálculo de frete pelos Correios              |
-| WooCommerce Payments                         | Pagamentos (Pix, Cartão, etc)                |
-| Elementor                                    | Construtor visual                            |
-| AddToAny                                     | Botões de compartilhamento                   |
-| MailPoet                                     | Newsletter e e-mails automáticos             |
-| PDF Invoices & Packing Slips                 | Faturas em PDF                               |
-| Wordfence                                    | Segurança avançada                           |
-| WP Super Cache                               | Cache para performance                       |
-| Yoast SEO                                    | Otimização para motores de busca             |
-| Advanced Shipment Tracking                   | Rastreamento de pedidos                      |
+wordpress-docker/
+├── .env # Variáveis de ambiente
+├── .gitignore # Arquivos ignorados no Git
+├── backup_db.sh # Script de backup do banco MySQL
+├── docker-compose.yml # Define WordPress, MySQL e Traefik (opcional)
+├── upload_backup.sh # Script para zipar e enviar wp-content pro Drive
+├── wp-config.php # Configurações adicionais do WordPress
+├── wp-content/ # Seus temas, plugins e uploads
+├── backups/ # Backups locais (gerados pelos scripts)
+└── git_push.sh # Script auxiliar para commit/push Git
+
 
 ---
 
-## 🛠 Como Rodar Localmente
+## 🛠️ Requisitos
 
-1. **Clone o repositório:**
+| Ferramenta     | Versão mínima |
+|----------------|----------------|
+| Docker         | 20.x           |
+| Docker Compose | 1.29+          |
+| Git            | Qualquer       |
+| rclone         | 1.65+          |
+| zip/unzip      | Para compressão de `wp-content` |
+
+---
+
+## 🔧 Como usar
+
+### 1. Clone o projeto
 
 ```bash
 git clone https://github.com/gabriellina640/Projeto-Wordpress.git
 cd Projeto-Wordpress
 
-    Inicie os containers:
+2. Configure os diretórios necessários
 
-docker compose up -d
+mkdir -p db_data backups
 
-    Acesse no navegador:
+3. (Opcional) Restaurar backups do Google Drive
+Configure o rclone:
 
-http://localhost
+rclone config
 
-    Use o Docker Desktop no Windows ou docker engine no Linux. Certifique-se de que as portas 80/443 não estejam em uso.
+Baixe os arquivos:
 
-🧳 Como Migrar para Outro Computador
+rclone copy gdrive:wordpress/backups/db ./backups/db --progress
+rclone copy gdrive:wordpress/backups/wp-content ./backups/wp-content --progress
 
-    Clone o repositório no novo PC.
+Restaure banco (caso tenha dump .sql):
 
-    Instale Docker e Docker Compose.
+docker exec -i wordpress-docker_db_1 mysql -uroot -prootpass < backups/db/backup_xxxxxx.sql
 
-    Rode docker compose up -d.
+Descompacte o wp-content:
 
-    (Opcional) Restaure o backup do banco de dados, caso necessário.
+unzip backups/wp-content/wp-content_xxxxxx.zip -d wp-content/
 
-✅ Próximas Etapas
+4. Suba os containers
 
-Customização do visual do site
+docker-compose up -d
 
-Criação de produtos e categorias
+Acesse o WordPress em: http://localhost:8000
+🔁 Backups
+✅ Banco de Dados
 
-Ativação de certificados SSL com Traefik + DuckDNS
+bash backup_db.sh
 
-Integração com gateway de pagamento real
+    Gera um .sql da base de dados e salva em ./backups/db/.
 
-    Testes em produção
+✅ wp-content (temas, plugins, uploads)
 
-👨‍💻 Desenvolvido por
+bash upload_backup.sh
 
-Gabriel Henrique - @gabriellina640
-📄 Licença
+    Compacta a pasta wp-content e envia automaticamente para o Google Drive.
 
-Este projeto está licenciado sob a MIT License.
+☁️ Google Drive com rclone
 
+Os backups serão armazenados automaticamente no seu Google Drive, dentro de:
 
----
+/wordpress/backups/db
+/wordpress/backups/wp-content
 
-### ✅ O que fazer agora?
+Se ainda não configurou o rclone:
 
-1. Salve esse conteúdo em um arquivo chamado `README.md` na raiz do seu projeto.
-2. No terminal:
+rclone config
 
-```bash
-git add README.md
-git commit -m "Adiciona README.md profissional"
-git push
+Siga os passos para logar com sua conta Google e autorizar o acesso.
+📤 Atualizar projeto no GitHub
+
+Edite, modifique e depois rode:
+
+bash git_push.sh
+
+👨‍💻 Autor
+
+    Gabriel Henrique
+
+    GitHub
+
+    Projeto voltado para automação e portabilidade com foco em produtividade!
+
+📝 Licença
+
+Este projeto é de uso pessoal, mas você pode adaptar à vontade para seus projetos próprios ou empresariais. Se for usar publicamente, mantenha os créditos. 😉
+📌 Dica Final
+
+Se quiser migrar o projeto para produção real, ative o Traefik no docker-compose.yml e configure corretamente o domínio e SSL via Let's Encrypt.
