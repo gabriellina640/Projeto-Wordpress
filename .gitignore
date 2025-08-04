@@ -1,0 +1,20 @@
+# Ignorar dados de banco e volumes
+db_data/
+volumes/
+wp-content/uploads/
+backups/
+*.sql
+
+# Ignorar arquivos de sistema
+.DS_Store
+*.log
+*.bak
+
+# Docker
+*.pid
+*.tar.gz
+*.tar
+*.zip
+*.part.*
+*.sqlbackup-wp-content.tar.gz
+backup-wp-content.tar.gz.part.aa

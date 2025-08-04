@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+#  traefik:
+#    image: traefik:v2.10
+#    command:
+#      - "--api.insecure=true"                   # habilita dashboard (dev)
+#      - "--providers.docker=true"               # Traefik monitora docker
+#      - "--entrypoints.web.address=:80"         # porta HTTP
+#      - "--entrypoints.websecure.address=:443"  # porta HTTPS
+#      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"  # SSL TLS challenge
+#      - "--certificatesresolvers.myresolver.acme.email=seu-email@exemplo.com"  # seu email real aqui
+#      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+#    ports:
+#      - "80:80"       # HTTP padrão
+#      - "443:443"     # HTTPS padrão
+#      - "8080:8080"   # dashboard Traefik (acesso via browser)
+#    volumes:
+#      - "/var/run/docker.sock:/var/run/docker.sock:ro"   # Traefik vê seus containers
+#      - "./letsencrypt:/letsencrypt"                      # pasta para salvar certificados
+#    restart: unless-stopped
+
+  wordpress:
+    image: wordpress:latest
+     #REMOVA esta linha de portas para não expor o container diretamente
+    ports:
+      - "8000:80"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DB_USER: user
+      WORDPRESS_DB_PASSWORD: password
+      WORDPRESS_CONFIG_EXTRA: "define('WPLANG', 'pt_BR');"
+
+    volumes:
+      - ./wp-content:/var/www/html/wp-content
+    depends_on:
+      - db
+    labels:
+      - "traefik.enable=true"                                           # ativa Traefik para este container
+      - "traefik.http.routers.wordpress.rule=Host(`seu-dominio.com`)"  # substitua pelo seu domínio
+      - "traefik.http.routers.wordpress.entrypoints=websecure"         # usa HTTPS
+      - "traefik.http.routers.wordpress.tls.certresolver=myresolver"   # usa o cert resolver configurado
+      - "traefik.http.services.wordpress.loadbalancer.server.port=80"  # porta interna do container WordPress
+    restart: unless-stopped
+
+  db:
+    image: mysql:5.7
+    environment:
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: rootpass
+    volumes:
+      - ./db_data:/var/lib/mysql
+    restart: unless-stopped
+
